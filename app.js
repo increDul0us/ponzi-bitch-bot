@@ -1,0 +1,132 @@
+const puppeteer = require('puppeteer');
+const mongoose = require('mongoose');
+const User = require('./models/user');
+var express = require('express');
+var app = express();
+
+const CreateAccount = async()=>{
+  let browser = await puppeteer.launch({
+    headless: false
+  });
+  
+  let GetSelectValue = async(id)=>{
+    let $elemHandler = await page.$(`[name=${id}]`);
+    let properties = await $elemHandler.getProperties();
+    let value;
+    for (const property of properties.values()) {
+      const element = property.asElement();
+      if (element){
+        let hText = await element.getProperty("text");
+        let text = await hText.jsonValue();
+        if(text.toLowerCase().includes('first')){
+          let hValue = await element.getProperty("value");
+          value = await hValue.jsonValue();
+          // console.log(`Selected ${text} which is value ${value}.`);
+        }
+      }
+    }
+    return value;
+  }
+  let page = await browser.newPage();
+
+  await page.goto('https://www.finworldconsults.com/register.php');
+
+  let bname = await GetSelectValue('bname');
+  let question = await GetSelectValue('question');
+
+  const RandomStringGenerator =()=> Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  const RandomNumberGenerator =()=> Math.floor(Math.random() * 2) + ''+(Math.floor(Math.random() * 900000000) + 10000000);
+  let fname = RandomStringGenerator();
+  let lname = RandomStringGenerator();
+  let uname = RandomStringGenerator();
+  let email = RandomStringGenerator()+'@gmail.com';
+  let phone = '08'+''+RandomNumberGenerator();
+  let password = uname;
+  let cpassword = uname;
+  let acctnum = uname;
+  let answer = uname;
+  await page.type('[name="fname"]', fname);
+  await page.type('[name="lname"]', lname);
+  await page.type('[name="uname"]', uname);
+  await page.type('[name="email"]', email);
+  await page.type('[name="phone"]', phone);
+  await page.type('[name="password"]', password);
+  await page.type('[name="cpassword"]', cpassword);
+  await page.type('[name="acctnum"]', acctnum);
+  await page.type('[name="answer"]', answer);
+  await page.select('[name="bname"]', bname);
+  await page.select('[name="question"]', question);
+
+  await page.click('[name="register"]');
+  await page.waitForNavigation();
+  SaveUser({ uname, email, password, dateCrawled: new Date() });
+  await Login(page, uname, password);
+}
+const Login = async(page, useremail, password)=>{
+  if(!page){
+    let browser = await puppeteer.launch({
+      headless: false
+    });  
+    page = await browser.newPage();
+    await page.goto('https://www.finworldconsults.com/login.php');
+  }
+  await page.type('[name="useremail"]', useremail);
+  await page.type('[name="password"]', password);
+
+  await page.click('[name="login"]');
+  await page.waitForNavigation();
+  await SubmitUpload(page);
+}
+const SubmitUpload = async(page)=>{
+  if(!page){
+    let browser = await puppeteer.launch({
+      headless: false
+    });  
+    page = await browser.newPage();
+    await page.goto('https://www.finworldconsults.com/dashboard/user/dashboard.php');
+  }
+  const UploadFile = async(id)=>{
+    // get the selector input type=file (for upload file)
+    await page.waitForSelector(`input[name=${id}]`);
+    await page.waitFor(1000);
+  
+    // get the ElementHandle of the selector above
+    const inputUploadHandle = await page.$(`input[name=${id}]`);
+  
+    // prepare file to upload, I'm using test_to_upload.jpg file on same directory as this script
+    // Photo by Ave Calvar Martinez from Pexels https://www.pexels.com/photo/lighthouse-3361704/
+    let fileToUpload = 'game.png';
+  
+    // Sets the value of the file input to fileToUpload
+    inputUploadHandle.uploadFile(fileToUpload);
+  }
+
+  await UploadFile('task1')
+  await UploadFile('task2')
+  await UploadFile('task3')
+
+  await page.click('[name="submittask"]');
+  await page.waitForNavigation();
+}
+
+const SaveUser = (userObj)=> {
+  const DB_URL = 'mongodb://localhost/finworld';
+
+  if (mongoose.connection.readyState == 0) {
+    mongoose.connect(DB_URL);
+  }
+
+  // if this email exists, update the entry, don't insert
+  const conditions = { email: userObj.email };
+  const options = { upsert: true, new: true, setDefaultsOnInsert: true };
+
+  User.findOneAndUpdate(conditions, userObj, options, (err, result) => {
+    console.log({result});
+    if (err) {
+      throw err;
+    }
+  });
+}
+// CreateAccount();
+Login(null, 'username', 'password');
+module.exports = app;
