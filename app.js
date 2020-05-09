@@ -62,7 +62,7 @@ const CreateAccount = async(page)=>{
   await page.click('[name="register"]');
   await page.waitForNavigation();
   SaveUser({ uname, email, password, dateCrawled: new Date() });
-  await Login(page, uname, password);
+  await Login(page, email, password);
 }
 const Login = async(page, useremail, password)=>{
   if(!page){
