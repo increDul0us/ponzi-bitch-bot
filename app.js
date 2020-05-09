@@ -96,9 +96,6 @@ const SubmitUpload = async(page)=>{
   
     // get the ElementHandle of the selector above
     const inputUploadHandle = await page.$(`input[name=${id}]`);
-  
-    // prepare file to upload, I'm using test_to_upload.jpg file on same directory as this script
-    // Photo by Ave Calvar Martinez from Pexels https://www.pexels.com/photo/lighthouse-3361704/
     let fileToUpload = 'koj.png';
   
     // Sets the value of the file input to fileToUpload
