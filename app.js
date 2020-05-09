@@ -4,10 +4,15 @@ const User = require('./models/user');
 var express = require('express');
 var app = express();
 
-const CreateAccount = async()=>{
-  let browser = await puppeteer.launch({
-    headless: false
-  });
+const CreateAccount = async(page)=>{
+  if(!page){
+    let browser = await puppeteer.launch({
+      headless: false
+    });  
+    page = await browser.newPage();
+    await page.setDefaultNavigationTimeout(0);
+    await page.goto('https://www.finworldconsults.com/register.php');
+  }
   
   let GetSelectValue = async(id)=>{
     let $elemHandler = await page.$(`[name=${id}]`);
@@ -27,9 +32,6 @@ const CreateAccount = async()=>{
     }
     return value;
   }
-  let page = await browser.newPage();
-
-  await page.goto('https://www.finworldconsults.com/register.php');
 
   let bname = await GetSelectValue('bname');
   let question = await GetSelectValue('question');
@@ -68,6 +70,7 @@ const Login = async(page, useremail, password)=>{
       headless: false
     });  
     page = await browser.newPage();
+    await page.setDefaultNavigationTimeout(0);
     await page.goto('https://www.finworldconsults.com/login.php');
   }
   await page.type('[name="useremail"]', useremail);
@@ -83,6 +86,7 @@ const SubmitUpload = async(page)=>{
       headless: false
     });  
     page = await browser.newPage();
+    await page.setDefaultNavigationTimeout(0);
     await page.goto('https://www.finworldconsults.com/dashboard/user/dashboard.php');
   }
   const UploadFile = async(id)=>{
@@ -106,7 +110,11 @@ const SubmitUpload = async(page)=>{
   await UploadFile('task3')
 
   await page.click('[name="submittask"]');
-  await page.waitForNavigation();
+  // await page.waitForNavigation();
+  await page.setDefaultNavigationTimeout(0);
+  await page.goto('https://www.finworldconsults.com/dashboard/action/logout.php');
+  await page.goto('https://www.finworldconsults.com/register.php');
+  await CreateAccount(page)
 }
 
 const SaveUser = (userObj)=> {
@@ -127,6 +135,8 @@ const SaveUser = (userObj)=> {
     }
   });
 }
-// CreateAccount();
-Login(null, 'username', 'password');
+// for (let i = 0; i<=100; i++ ){
+  CreateAccount();
+// }
+// Login(null, 'username', 'password');
 module.exports = app;
