@@ -14,7 +14,7 @@ const CreateAccount = async(page)=>{
     await page.goto('https://www.finworldconsults.com/register.php');
   }
   
-  let GetSelectValue = async(id)=>{
+  let GetSelectValue = async(id,valuetext)=>{
     let $elemHandler = await page.$(`[name=${id}]`);
     let properties = await $elemHandler.getProperties();
     let value;
@@ -23,7 +23,7 @@ const CreateAccount = async(page)=>{
       if (element){
         let hText = await element.getProperty("text");
         let text = await hText.jsonValue();
-        if(text.toLowerCase().includes('first')){
+        if(text.toLowerCase().includes(valuetext)){
           let hValue = await element.getProperty("value");
           value = await hValue.jsonValue();
           // console.log(`Selected ${text} which is value ${value}.`);
@@ -33,20 +33,27 @@ const CreateAccount = async(page)=>{
     return value;
   }
 
-  let bname = await GetSelectValue('bname');
-  let question = await GetSelectValue('question');
+  let bname = await GetSelectValue('bname','access');
+  let question = await GetSelectValue('question', 'child');
 
-  const RandomStringGenerator =()=> Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  const RandomStringGenerator =()=> Math.random().toString(36).substring(2, 7) + Math.random().toString(36).substring(2, 7);
   const RandomNumberGenerator =()=> Math.floor(Math.random() * 2) + ''+(Math.floor(Math.random() * 900000000) + 10000000);
   let fname = RandomStringGenerator();
   let lname = RandomStringGenerator();
   let uname = RandomStringGenerator();
   let email = RandomStringGenerator()+'@gmail.com';
   let phone = '08'+''+RandomNumberGenerator();
-  let password = uname;
-  let cpassword = uname;
-  let acctnum = uname;
-  let answer = uname;
+  let password = email;
+  let cpassword = email;
+  let acctnum = phone;
+  let answer = RandomStringGenerator();;
+
+  // await page.evaluate((sel) => {
+  //     var elements = document.querySelectorAll(sel);
+  //     for(var i=0; i< elements.length; i++){
+  //         elements[i].parentNode.removeChild(elements[i]);
+  //     }
+  // }, '[name="title"]')
   await page.type('[name="fname"]', fname);
   await page.type('[name="lname"]', lname);
   await page.type('[name="uname"]', uname);
@@ -59,10 +66,14 @@ const CreateAccount = async(page)=>{
   await page.select('[name="bname"]', bname);
   await page.select('[name="question"]', question);
 
+  await page.$eval('[name="register"]', el => el.disabled = false);
   await page.click('[name="register"]');
   await page.waitForNavigation();
   SaveUser({ uname, email, password, dateCrawled: new Date() });
-  await Login(page, email, password);
+  console.log('New Account Created.')
+  await page.goto('https://www.finworldconsults.com/register.php');
+  await CreateAccount(page);
+  // await Login(page, email, password);
 }
 const Login = async(page, useremail, password)=>{
   if(!page){
@@ -89,22 +100,22 @@ const SubmitUpload = async(page)=>{
     await page.setDefaultNavigationTimeout(0);
     await page.goto('https://www.finworldconsults.com/dashboard/user/dashboard.php');
   }
-  const UploadFile = async(id)=>{
+  const UploadFile = async(id,image)=>{
     // get the selector input type=file (for upload file)
     await page.waitForSelector(`input[name=${id}]`);
     await page.waitFor(1000);
   
     // get the ElementHandle of the selector above
     const inputUploadHandle = await page.$(`input[name=${id}]`);
-    let fileToUpload = 'koj.png';
+    let fileToUpload = image;
   
     // Sets the value of the file input to fileToUpload
     inputUploadHandle.uploadFile(fileToUpload);
   }
 
-  await UploadFile('task1')
-  await UploadFile('task2')
-  await UploadFile('task3')
+  await UploadFile('task1', 'task1.png')
+  await UploadFile('task2', 'task2.png')
+  await UploadFile('task3', 'task3.png')
 
   await page.click('[name="submittask"]');
   // await page.waitForNavigation();
@@ -115,7 +126,7 @@ const SubmitUpload = async(page)=>{
 }
 
 const SaveUser = (userObj)=> {
-  const DB_URL = 'mongodb://localhost/finworld';
+  const DB_URL = 'mongodb+srv://incredulous:incredulous@elibrary-2x3d7.mongodb.net/test?retryWrites=true';
 
   if (mongoose.connection.readyState == 0) {
     mongoose.connect(DB_URL);
