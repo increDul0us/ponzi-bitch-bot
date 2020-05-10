@@ -7,7 +7,7 @@ var app = express();
 const CreateAccount = async(page)=>{
   if(!page){
     let browser = await puppeteer.launch({
-      headless: false,
+      headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'] 
     });  
     page = await browser.newPage();
